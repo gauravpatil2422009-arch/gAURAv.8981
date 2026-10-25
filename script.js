@@ -1,30 +1,15 @@
 /* =========================================================
-   GAURAV — CINEMATIC INTRO
-   ---------------------------------------------------------
-   FINAL INTRO FLOW
-
-   1. Black screen
-   2. Small lamp + short rope
-   3. PULL ME
-   4. Pull rope
-   5. Lamp turns ON
-   6. GAURAV glows #f9d1d9
-   7. GAURAV remains visible for 7 seconds
-   8. Power-cut / glitch effect
-   9. GAURAV disappears
-   10. PULL ME appears again
-   11. Pull rope
-   12. START glows #feffaf
-   13. Click directly on START
-   14. Portfolio opens
-
-   Everything else remains cinematic and minimal.
+   GAURAV PORTFOLIO
+   CINEMATIC INTRO CONTROLLER
 ========================================================= */
 
 
 /* =========================================================
-   ELEMENTS
+   DOM ELEMENTS
 ========================================================= */
+
+const intro =
+    document.getElementById("intro");
 
 const canvas =
     document.getElementById("introCanvas");
@@ -32,40 +17,41 @@ const canvas =
 const ctx =
     canvas.getContext("2d");
 
-const intro =
-    document.getElementById("intro");
+const portfolio =
+    document.getElementById("portfolio");
 
 const pullInstruction =
-    document.getElementById("introInstruction");
-
-const tiltInstruction =
-    document.getElementById("tiltInstruction");
+    document.getElementById("pullInstruction");
 
 const secondPullInstruction =
     document.getElementById("secondPullInstruction");
 
-const startButton =
-    document.getElementById("startButton");
 
-const portfolio =
-    document.getElementById("portfolio");
+/* =========================================================
+   BASIC SAFETY CHECK
+========================================================= */
 
-const introFlash =
-    document.getElementById("introFlash");
-
-
-/*
-   We don't use the HTML START button anymore.
-
-   START is drawn directly on canvas and
-   the glowing word itself becomes clickable.
-*/
-
-if (startButton) {
-
-    startButton.style.opacity = "0";
-    startButton.style.pointerEvents = "none";
+if (
+    !intro ||
+    !canvas ||
+    !ctx ||
+    !portfolio ||
+    !pullInstruction ||
+    !secondPullInstruction
+) {
+    console.error(
+        "GAURAV INTRO ERROR: Required HTML elements are missing."
+    );
 }
+
+
+/* =========================================================
+   BODY STATE
+========================================================= */
+
+document.body.classList.add(
+    "intro-active"
+);
 
 
 /* =========================================================
@@ -76,6 +62,179 @@ let width = 0;
 let height = 0;
 let dpr = 1;
 
+
+/* =========================================================
+   COLORS
+========================================================= */
+
+const COLORS = {
+
+    black:
+        "#000000",
+
+    white:
+        "#ffffff",
+
+    pink:
+        "#f9d1d9",
+
+    yellow:
+        "#feffaf"
+
+};
+
+
+/* =========================================================
+   STATES
+========================================================= */
+
+const STATES = {
+
+    WAITING_FIRST_PULL:
+        "WAITING_FIRST_PULL",
+
+    GAURAV:
+        "GAURAV",
+
+    POWER_CUT:
+        "POWER_CUT",
+
+    WAITING_SECOND_PULL:
+        "WAITING_SECOND_PULL",
+
+    START:
+        "START",
+
+    FINISHED:
+        "FINISHED"
+
+};
+
+
+/* =========================================================
+   CURRENT STATE
+========================================================= */
+
+let state =
+    STATES.WAITING_FIRST_PULL;
+
+
+/* =========================================================
+   LAMP
+========================================================= */
+
+const lamp = {
+
+    x: 0,
+
+    y: 0,
+
+    width: 92,
+
+    height: 48,
+
+    ropeTopY: 0,
+
+    ropeLength: 115,
+
+    ropeOffset: 0,
+
+    pulling: false,
+
+    pullStartY: 0,
+
+    currentPull: 0,
+
+    maxPull: 58,
+
+    on: false,
+
+    glow: 0
+
+};
+
+
+/* =========================================================
+   START POSITION / HIT AREA
+========================================================= */
+
+const startArea = {
+
+    x: 0,
+
+    y: 0,
+
+    width: 0,
+
+    height: 0
+
+};
+
+
+/* =========================================================
+   GAURAV LETTERS
+========================================================= */
+
+const gauravText =
+    "GAURAV";
+
+
+/* =========================================================
+   GLITCH DATA
+========================================================= */
+
+let glitchLines = [];
+
+let glitchFragments = [];
+
+let powerCutStart =
+    0;
+
+let gauravStart =
+    0;
+
+let secondPullStart =
+    0;
+
+let startPulse =
+    0;
+
+
+/* =========================================================
+   RANDOM HELPERS
+========================================================= */
+
+function random(
+    min,
+    max
+) {
+
+    return (
+        Math.random() *
+        (max - min)
+    ) + min;
+
+}
+
+
+function randomInt(
+    min,
+    max
+) {
+
+    return Math.floor(
+        random(
+            min,
+            max + 1
+        )
+    );
+
+}
+
+
+/* =========================================================
+   CANVAS RESIZE
+========================================================= */
 
 function resizeCanvas() {
 
@@ -91,20 +250,21 @@ function resizeCanvas() {
     height =
         window.innerHeight;
 
-
     canvas.width =
-        width * dpr;
+        Math.floor(
+            width * dpr
+        );
 
     canvas.height =
-        height * dpr;
-
+        Math.floor(
+            height * dpr
+        );
 
     canvas.style.width =
         width + "px";
 
     canvas.style.height =
         height + "px";
-
 
     ctx.setTransform(
         dpr,
@@ -115,9 +275,8 @@ function resizeCanvas() {
         0
     );
 
+    updateLampPosition();
 
-    setupLamp();
-    createLetters();
 }
 
 
@@ -128,512 +287,148 @@ window.addEventListener(
 
 
 /* =========================================================
-   STATES
+   LAMP POSITION
 ========================================================= */
 
-const STATE = {
-
-    WAITING_FOR_FIRST_PULL:
-        "waitingFirstPull",
-
-    LAMP_ON:
-        "lampOn",
-
-    GAURAV:
-        "gaurav",
-
-    GLITCH:
-        "glitch",
-
-    WAITING_FOR_SECOND_PULL:
-        "waitingSecondPull",
-
-    START:
-        "start",
-
-    FINISHED:
-        "finished"
-};
-
-
-let state =
-    STATE.WAITING_FOR_FIRST_PULL;
-
-
-/* =========================================================
-   TIME
-========================================================= */
-
-let lastTime =
-    performance.now();
-
-let elapsed =
-    0;
-
-
-/* =========================================================
-   LAMP
-========================================================= */
-
-const lamp = {
-
-    x: 0,
-
-    y: 0,
-
-    shadeWidth: 0,
-
-    shadeHeight: 0,
-
-    lightRadius: 0,
-
-    brightness: 0,
-
-    targetBrightness: 0,
-
-    ropeTopX: 0,
-
-    ropeTopY: 0,
-
-    ropeLength: 0,
-
-    ropePull: 0,
-
-    ropeVelocity: 0,
-
-    isDragging: false,
-
-    pullStartY: 0
-};
-
-
-/* =========================================================
-   ROPE PHYSICS
-========================================================= */
-
-const ropePhysics = {
-
-    maxPull: 0,
-
-    spring: 0.065,
-
-    damping: 0.78
-};
-
-
-/* =========================================================
-   GAURAV
-========================================================= */
-
-const word =
-    "GAURAV";
-
-
-let letters = [];
-
-
-/*
-   GAURAV visual state
-*/
-
-let gauravOpacity = 0;
-
-let gauravGlow = 0;
-
-let gauravVisible = false;
-
-
-/* =========================================================
-   GLITCH SYSTEM
-========================================================= */
-
-const glitch = {
-
-    active: false,
-
-    startTime: 0,
-
-    duration: 1650,
-
-    intensity: 0,
-
-    powerCut: 0,
-
-    finished: false
-};
-
-
-/*
-   Random glitch bars.
-*/
-
-let glitchBars = [];
-
-
-/* =========================================================
-   START
-========================================================= */
-
-const startText = {
-
-    x: 0,
-
-    y: 0,
-
-    opacity: 0,
-
-    glow: 0,
-
-    scale: 0.92,
-
-    visible: false,
-
-    hitRadiusX: 0,
-
-    hitRadiusY: 0
-};
-
-
-/* =========================================================
-   POINTER
-========================================================= */
-
-let currentPointerY = 0;
-
-
-/* =========================================================
-   HELPERS
-========================================================= */
-
-function clamp(
-    value,
-    min,
-    max
-) {
-
-    return Math.max(
-        min,
-        Math.min(
-            max,
-            value
-        )
-    );
-}
-
-
-function lerp(
-    a,
-    b,
-    amount
-) {
-
-    return (
-        a +
-        (b - a) *
-        amount
-    );
-}
-
-
-function random(
-    min,
-    max
-) {
-
-    return (
-        Math.random() *
-        (max - min) +
-        min
-    );
-}
-
-
-/* =========================================================
-   LAMP SETUP
-========================================================= */
-
-function setupLamp() {
-
-    /*
-       SMALL AESTHETIC LAMP
-    */
-
-    const scale =
-        clamp(
-            Math.min(
-                width,
-                height
-            ) / 700,
-            0.75,
-            1.2
-        );
-
-
-    lamp.shadeWidth =
-        92 * scale;
-
-
-    lamp.shadeHeight =
-        43 * scale;
-
+function updateLampPosition() {
 
     lamp.x =
-        width * 0.5;
-
+        width / 2;
 
     lamp.y =
-        height * 0.18;
-
-
-    lamp.lightRadius =
-        Math.min(
-            width,
-            height
-        ) * 0.52;
-
-
-    lamp.ropeTopX =
-        lamp.x;
-
+        Math.max(
+            92,
+            height * 0.18
+        );
 
     lamp.ropeTopY =
-        lamp.y +
-        lamp.shadeHeight *
-        0.78;
+        lamp.y -
+        135;
 
-
-    /*
-       SHORT ROPE
-    */
-
-    lamp.ropeLength =
-        clamp(
-            height * 0.11,
-            65,
-            105
-        );
-
-
-    ropePhysics.maxPull =
-        lamp.ropeLength *
-        0.34;
 }
 
 
 /* =========================================================
-   CREATE GAURAV LETTERS
+   EASING
 ========================================================= */
 
-function createLetters() {
+function easeOutCubic(
+    t
+) {
 
-    letters = [];
-
-
-    const fontSize =
-        clamp(
-            Math.min(
-                width,
-                height
-            ) * 0.105,
-            54,
-            120
+    return 1 -
+        Math.pow(
+            1 - t,
+            3
         );
 
-
-    ctx.font =
-        `300 ${fontSize}px Arial`;
+}
 
 
-    const spacing =
-        fontSize *
-        0.055;
+function easeInOut(
+    t
+) {
 
+    return (
+        t < 0.5
+            ? 4 * t * t * t
+            : 1 -
+                Math.pow(
+                    -2 * t + 2,
+                    3
+                ) / 2
+    );
 
-    let totalWidth =
-        0;
-
-
-    const measurements = [];
-
-
-    for (
-        let i = 0;
-        i < word.length;
-        i++
-    ) {
-
-        const letterWidth =
-            ctx.measureText(
-                word[i]
-            ).width;
-
-
-        measurements.push(
-            letterWidth
-        );
-
-
-        totalWidth +=
-            letterWidth;
-
-
-        if (
-            i <
-            word.length - 1
-        ) {
-
-            totalWidth +=
-                spacing;
-        }
-    }
-
-
-    let currentX =
-        width / 2 -
-        totalWidth / 2;
-
-
-    const centerY =
-        height * 0.52;
-
-
-    for (
-        let i = 0;
-        i < word.length;
-        i++
-    ) {
-
-        const letterWidth =
-            measurements[i];
-
-
-        letters.push({
-
-            char:
-                word[i],
-
-            x:
-                currentX +
-                letterWidth / 2,
-
-            y:
-                centerY,
-
-            fontSize:
-                fontSize,
-
-            opacity:
-                0,
-
-            glow:
-                0,
-
-            flicker:
-                1
-        });
-
-
-        currentX +=
-            letterWidth +
-            spacing;
-    }
 }
 
 
 /* =========================================================
-   DRAW LAMP LIGHT
+   PULL INSTRUCTION
 ========================================================= */
 
-function drawLampLight() {
+function showFirstPull() {
 
-    if (
-        lamp.brightness <=
-        0.001
-    ) {
-
-        return;
-    }
-
-
-    const gradient =
-        ctx.createRadialGradient(
-
-            lamp.x,
-
-            lamp.y +
-                lamp.shadeHeight *
-                0.8,
-
-            0,
-
-            lamp.x,
-
-            lamp.y +
-                lamp.shadeHeight *
-                0.8,
-
-            lamp.lightRadius
-        );
-
-
-    const brightness =
-        lamp.brightness;
-
-
-    gradient.addColorStop(
-        0,
-        `rgba(255,244,210,${0.20 * brightness})`
+    pullInstruction.classList.add(
+        "visible"
     );
 
+}
 
-    gradient.addColorStop(
-        0.12,
-        `rgba(255,235,190,${0.12 * brightness})`
+
+function hideFirstPull() {
+
+    pullInstruction.classList.remove(
+        "visible"
     );
 
+}
 
-    gradient.addColorStop(
-        0.35,
-        `rgba(255,220,170,${0.055 * brightness})`
+
+function showSecondPull() {
+
+    secondPullInstruction.classList.add(
+        "visible"
     );
 
+}
 
-    gradient.addColorStop(
-        0.7,
-        `rgba(255,210,160,${0.015 * brightness})`
+
+function hideSecondPull() {
+
+    secondPullInstruction.classList.remove(
+        "visible"
     );
 
-
-    gradient.addColorStop(
-        1,
-        "rgba(255,200,150,0)"
-    );
+}
 
 
-    ctx.save();
+/* =========================================================
+   DRAW HELPERS
+========================================================= */
 
-    ctx.globalCompositeOperation =
-        "screen";
+function clearCanvas() {
 
-
-    ctx.fillStyle =
-        gradient;
-
-
-    ctx.fillRect(
+    ctx.clearRect(
         0,
         0,
         width,
         height
     );
 
+}
 
-    ctx.restore();
+
+function drawGlowCircle(
+    x,
+    y,
+    radius,
+    alpha,
+    color
+) {
+
+    const gradient =
+        ctx.createRadialGradient(
+            x,
+            y,
+            0,
+            x,
+            y,
+            radius
+        );
+
+    gradient.addColorStop(
+        0,
+        color.replace(
+            ")",
+            `, ${alpha})`
+        )
+    );
+
 }
 
 
 /* =========================================================
-   DRAW LAMP
+   REALISTIC LAMP
 ========================================================= */
 
 function drawLamp() {
@@ -644,30 +439,51 @@ function drawLamp() {
     const y =
         lamp.y;
 
-    const sw =
-        lamp.shadeWidth;
+    const ropeEnd =
+        lamp.ropeTopY +
+        lamp.ropeLength +
+        lamp.ropeOffset;
 
-    const sh =
-        lamp.shadeHeight;
 
+    /* -----------------------------------------------------
+       Ceiling point
+    ----------------------------------------------------- */
 
     ctx.save();
 
+    ctx.strokeStyle =
+        "rgba(255,255,255,0.18)";
 
-    /*
-       Ceiling point
-    */
+    ctx.lineWidth = 1;
+
+    ctx.beginPath();
+
+    ctx.moveTo(
+        x,
+        0
+    );
+
+    ctx.lineTo(
+        x,
+        lamp.ropeTopY
+    );
+
+    ctx.stroke();
+
+
+    /* -----------------------------------------------------
+       Small ceiling mount
+    ----------------------------------------------------- */
 
     ctx.fillStyle =
-        "#151515";
-
+        "rgba(255,255,255,0.5)";
 
     ctx.beginPath();
 
     ctx.arc(
         x,
-        y - 11,
-        4,
+        lamp.ropeTopY,
+        3,
         0,
         Math.PI * 2
     );
@@ -675,658 +491,270 @@ function drawLamp() {
     ctx.fill();
 
 
-    /*
-       Cable
-    */
+    /* -----------------------------------------------------
+       Rope
+    ----------------------------------------------------- */
 
     ctx.strokeStyle =
-        "rgba(130,130,130,0.4)";
+        "rgba(210,210,210,0.78)";
 
-    ctx.lineWidth =
-        1;
-
+    ctx.lineWidth = 1.4;
 
     ctx.beginPath();
 
     ctx.moveTo(
         x,
-        y - 10
+        lamp.ropeTopY
     );
 
     ctx.lineTo(
         x,
-        y
+        ropeEnd
     );
 
     ctx.stroke();
 
 
-    /*
-       Soft lamp glow
-    */
+    /* -----------------------------------------------------
+       Rope small shadow
+    ----------------------------------------------------- */
+
+    ctx.strokeStyle =
+        "rgba(0,0,0,0.65)";
+
+    ctx.lineWidth = 0.8;
+
+    ctx.beginPath();
+
+    ctx.moveTo(
+        x + 1,
+        lamp.ropeTopY
+    );
+
+    ctx.lineTo(
+        x + 1,
+        ropeEnd
+    );
+
+    ctx.stroke();
+
+
+    /* -----------------------------------------------------
+       Pull handle
+    ----------------------------------------------------- */
+
+    ctx.fillStyle =
+        "#cfcfcf";
+
+    ctx.beginPath();
+
+    ctx.roundRect(
+        x - 5,
+        ropeEnd - 2,
+        10,
+        17,
+        5
+    );
+
+    ctx.fill();
+
+
+    /* -----------------------------------------------------
+       Lamp glow
+    ----------------------------------------------------- */
 
     if (
-        lamp.brightness >
-        0.01
+        lamp.on ||
+        lamp.glow > 0
     ) {
 
-        const glow =
+        const glowStrength =
+            lamp.on
+                ? 0.34
+                : lamp.glow * 0.34;
+
+        const glowRadius =
+            190 +
+            lamp.glow * 120;
+
+        const gradient =
             ctx.createRadialGradient(
-
                 x,
-
-                y +
-                    sh *
-                    0.45,
-
+                y + 22,
                 0,
-
                 x,
-
-                y +
-                    sh *
-                    0.45,
-
-                sw
+                y + 22,
+                glowRadius
             );
 
-
-        glow.addColorStop(
+        gradient.addColorStop(
             0,
-            `rgba(255,235,190,${0.4 * lamp.brightness})`
+            `rgba(255,245,185,${glowStrength})`
         );
 
-
-        glow.addColorStop(
-            0.5,
-            `rgba(255,215,160,${0.12 * lamp.brightness})`
+        gradient.addColorStop(
+            0.25,
+            `rgba(255,230,145,${glowStrength * 0.5})`
         );
 
-
-        glow.addColorStop(
+        gradient.addColorStop(
             1,
-            "rgba(255,200,150,0)"
+            "rgba(255,220,120,0)"
         );
-
 
         ctx.fillStyle =
-            glow;
-
+            gradient;
 
         ctx.beginPath();
 
         ctx.arc(
             x,
-            y + sh * 0.45,
-            sw,
+            y + 25,
+            glowRadius,
             0,
             Math.PI * 2
         );
 
         ctx.fill();
+
     }
 
 
-    /*
+    /* -----------------------------------------------------
+       Lamp shade shadow
+    ----------------------------------------------------- */
+
+    ctx.shadowBlur =
+        lamp.on
+            ? 28
+            : 0;
+
+    ctx.shadowColor =
+        "rgba(255,231,151,0.85)";
+
+
+    /* -----------------------------------------------------
        Lamp shade
-    */
+    ----------------------------------------------------- */
+
+    const shadeGradient =
+        ctx.createLinearGradient(
+            x,
+            y - 10,
+            x,
+            y + 42
+        );
+
+    shadeGradient.addColorStop(
+        0,
+        "#202020"
+    );
+
+    shadeGradient.addColorStop(
+        0.65,
+        "#101010"
+    );
+
+    shadeGradient.addColorStop(
+        1,
+        "#050505"
+    );
+
+    ctx.fillStyle =
+        shadeGradient;
 
     ctx.beginPath();
 
-
     ctx.moveTo(
-        x - sw / 2,
-        y
+        x - 25,
+        y - 4
     );
-
-
-    ctx.quadraticCurveTo(
-        x - sw * 0.43,
-        y + sh * 0.65,
-        x - sw * 0.30,
-        y + sh
-    );
-
 
     ctx.lineTo(
-        x + sw * 0.30,
-        y + sh
+        x + 25,
+        y - 4
     );
 
+    ctx.lineTo(
+        x + 44,
+        y + 34
+    );
 
     ctx.quadraticCurveTo(
-        x + sw * 0.43,
-        y + sh * 0.65,
-        x + sw / 2,
-        y
+        x,
+        y + 47,
+        x - 44,
+        y + 34
     );
-
 
     ctx.closePath();
 
-
-    const shade =
-        ctx.createLinearGradient(
-            x,
-            y,
-            x,
-            y + sh
-        );
-
-
-    shade.addColorStop(
-        0,
-        "#1c1c1c"
-    );
-
-
-    shade.addColorStop(
-        0.6,
-        "#0e0e0e"
-    );
-
-
-    shade.addColorStop(
-        1,
-        lamp.brightness > 0.05
-            ? "#3b2d21"
-            : "#080808"
-    );
-
-
-    ctx.fillStyle =
-        shade;
-
-
     ctx.fill();
 
 
-    /*
-       Bottom light
-    */
+    /* -----------------------------------------------------
+       Shade edge
+    ----------------------------------------------------- */
 
-    ctx.beginPath();
-
-
-    ctx.ellipse(
-        x,
-        y + sh,
-        sw * 0.31,
-        4,
-        0,
-        0,
-        Math.PI * 2
-    );
-
-
-    ctx.fillStyle =
-        lamp.brightness >
-        0.05
-
-            ? `rgba(255,231,183,${0.65 * lamp.brightness})`
-
-            : "#111";
-
-
-    ctx.fill();
-
-
-    ctx.restore();
-}
-
-
-/* =========================================================
-   DRAW ROPE
-========================================================= */
-
-function drawRope() {
-
-    const x =
-        lamp.ropeTopX;
-
-    const startY =
-        lamp.ropeTopY;
-
-    const length =
-        lamp.ropeLength;
-
-    const pull =
-        lamp.ropePull;
-
-
-    const endY =
-        startY +
-        length +
-        pull;
-
-
-    const curve =
-        Math.sin(
-            elapsed * 2.3
-        ) * 1.3;
-
-
-    ctx.save();
-
-
-    /*
-       Rope
-    */
+    ctx.shadowBlur = 0;
 
     ctx.strokeStyle =
-        "rgba(160,160,160,0.72)";
+        "rgba(255,255,255,0.22)";
 
-
-    ctx.lineWidth =
-        1.3;
-
+    ctx.lineWidth = 1;
 
     ctx.beginPath();
 
-
     ctx.moveTo(
-        x,
-        startY
+        x - 44,
+        y + 34
     );
 
-
-    ctx.bezierCurveTo(
-        x + curve,
-        startY +
-            length *
-            0.33,
-
-        x - curve,
-        startY +
-            length *
-            0.70,
-
+    ctx.quadraticCurveTo(
         x,
-        endY
+        y + 47,
+        x + 44,
+        y + 34
     );
-
 
     ctx.stroke();
 
 
-    /*
-       Pull knob
-    */
+    /* -----------------------------------------------------
+       Bulb
+    ----------------------------------------------------- */
 
-    const knob =
-        ctx.createRadialGradient(
-            x - 1,
-            endY - 1,
-            0,
+    if (lamp.on) {
+
+        ctx.shadowBlur =
+            35;
+
+        ctx.shadowColor =
+            "rgba(255,236,155,0.95)";
+
+        ctx.fillStyle =
+            "#fff5b5";
+
+        ctx.beginPath();
+
+        ctx.arc(
             x,
-            endY,
-            5
+            y + 28,
+            8,
+            0,
+            Math.PI * 2
         );
 
+        ctx.fill();
 
-    knob.addColorStop(
-        0,
-        "#e4e4e4"
-    );
+        ctx.shadowBlur =
+            0;
 
-
-    knob.addColorStop(
-        0.5,
-        "#777"
-    );
-
-
-    knob.addColorStop(
-        1,
-        "#303030"
-    );
-
-
-    ctx.fillStyle =
-        knob;
-
-
-    ctx.beginPath();
-
-
-    ctx.arc(
-        x,
-        endY,
-        4.5,
-        0,
-        Math.PI * 2
-    );
-
-
-    ctx.fill();
+    }
 
 
     ctx.restore();
-}
 
-
-/* =========================================================
-   ROPE HIT TEST
-========================================================= */
-
-function isPointerOnRope(
-    x,
-    y
-) {
-
-    const ropeX =
-        lamp.ropeTopX;
-
-    const top =
-        lamp.ropeTopY;
-
-    const bottom =
-        top +
-        lamp.ropeLength +
-        lamp.ropePull;
-
-
-    return (
-
-        Math.abs(
-            x - ropeX
-        ) < 30 &&
-
-        y >=
-            top - 15 &&
-
-        y <=
-            bottom + 20
-    );
-}
-
-
-/* =========================================================
-   BEGIN ROPE PULL
-========================================================= */
-
-function beginRopePull(
-    pointerY
-) {
-
-    if (
-
-        state !==
-            STATE.WAITING_FOR_FIRST_PULL &&
-
-        state !==
-            STATE.WAITING_FOR_SECOND_PULL
-    ) {
-
-        return;
-    }
-
-
-    lamp.isDragging =
-        true;
-
-
-    lamp.pullStartY =
-        pointerY;
-}
-
-
-/* =========================================================
-   RELEASE ROPE
-========================================================= */
-
-function releaseRope() {
-
-    if (
-        !lamp.isDragging
-    ) {
-
-        return;
-    }
-
-
-    lamp.isDragging =
-        false;
-
-
-    if (
-
-        lamp.ropePull >
-        ropePhysics.maxPull *
-        0.40
-    ) {
-
-        triggerLamp();
-    }
-}
-
-
-/* =========================================================
-   UPDATE ROPE
-========================================================= */
-
-function updateRope() {
-
-    if (
-        lamp.isDragging
-    ) {
-
-        const desiredPull =
-            clamp(
-
-                currentPointerY -
-                    lamp.pullStartY,
-
-                0,
-
-                ropePhysics.maxPull
-            );
-
-
-        lamp.ropePull =
-            lerp(
-                lamp.ropePull,
-                desiredPull,
-                0.35
-            );
-
-    } else {
-
-        /*
-           Smooth elastic return.
-        */
-
-        const force =
-            -lamp.ropePull *
-            ropePhysics.spring;
-
-
-        lamp.ropeVelocity +=
-            force;
-
-
-        lamp.ropeVelocity *=
-            ropePhysics.damping;
-
-
-        lamp.ropePull +=
-            lamp.ropeVelocity;
-
-
-        if (
-
-            Math.abs(
-                lamp.ropePull
-            ) < 0.05
-        ) {
-
-            lamp.ropePull =
-                0;
-
-            lamp.ropeVelocity =
-                0;
-        }
-    }
-}
-
-
-/* =========================================================
-   FIRST / SECOND PULL
-========================================================= */
-
-function triggerLamp() {
-
-    if (
-
-        state !==
-            STATE.WAITING_FOR_FIRST_PULL &&
-
-        state !==
-            STATE.WAITING_FOR_SECOND_PULL
-    ) {
-
-        return;
-    }
-
-
-    /*
-       Rope snap-back.
-    */
-
-    lamp.ropeVelocity =
-        -0.035;
-
-
-    /* =====================================================
-       FIRST PULL
-    ====================================================== */
-
-    if (
-        state ===
-        STATE.WAITING_FOR_FIRST_PULL
-    ) {
-
-        state =
-            STATE.LAMP_ON;
-
-
-        lamp.targetBrightness =
-            1;
-
-
-        hide(
-            pullInstruction
-        );
-
-
-        cinematicFlash();
-
-
-        /*
-           GAURAV begins appearing.
-        */
-
-        setTimeout(
-            () => {
-
-                showGaurav();
-
-            },
-            450
-        );
-
-
-        /*
-           IMPORTANT:
-
-           After GAURAV has appeared,
-           wait approximately 7 seconds
-           before the power-cut effect.
-        */
-
-        setTimeout(
-            () => {
-
-                beginPowerCut();
-
-            },
-            7600
-        );
-
-
-    }
-
-
-    /* =====================================================
-       SECOND PULL
-    ====================================================== */
-
-    else {
-
-        state =
-            STATE.START;
-
-
-        hide(
-            secondPullInstruction
-        );
-
-
-        /*
-           START appears.
-        */
-
-        setTimeout(
-            () => {
-
-                showStart();
-
-            },
-            400
-        );
-    }
-}
-
-
-/* =========================================================
-   GAURAV APPEAR
-========================================================= */
-
-function showGaurav() {
-
-    state =
-        STATE.GAURAV;
-
-
-    gauravVisible =
-        true;
-
-
-    /*
-       Fade letters in individually,
-       but very subtly.
-    */
-
-    letters.forEach(
-        (
-            letter,
-            index
-        ) => {
-
-            setTimeout(
-                () => {
-
-                    letter.opacity =
-                        1;
-
-                    letter.glow =
-                        1;
-
-                },
-                index * 100
-            );
-        }
-    );
 }
 
 
@@ -1334,17 +762,233 @@ function showGaurav() {
    DRAW GAURAV
 ========================================================= */
 
-function drawGaurav() {
+function drawGaurav(
+    time
+) {
 
-    if (
-        !gauravVisible
+    const centerX =
+        width / 2;
+
+    const centerY =
+        height * 0.58;
+
+    const fontSize =
+        Math.min(
+            width * 0.15,
+            155
+        );
+
+    ctx.save();
+
+    ctx.textAlign =
+        "center";
+
+    ctx.textBaseline =
+        "middle";
+
+    ctx.font =
+        `600 ${fontSize}px "Times New Roman", serif`;
+
+    ctx.shadowColor =
+        COLORS.pink;
+
+    ctx.shadowBlur =
+        24 +
+        Math.sin(time * 0.006) * 8;
+
+    ctx.fillStyle =
+        COLORS.pink;
+
+    ctx.fillText(
+        gauravText,
+        centerX,
+        centerY
+    );
+
+
+    /* -----------------------------------------------------
+       Additional subtle glow
+    ----------------------------------------------------- */
+
+    ctx.globalAlpha =
+        0.28;
+
+    ctx.shadowBlur =
+        55;
+
+    ctx.fillText(
+        gauravText,
+        centerX,
+        centerY
+    );
+
+    ctx.restore();
+
+}
+
+
+/* =========================================================
+   GAURAV GLITCH EFFECT
+========================================================= */
+
+function createGlitchData() {
+
+    glitchLines = [];
+
+    glitchFragments = [];
+
+
+    /* -----------------------------------------------------
+       Horizontal glitch lines
+    ----------------------------------------------------- */
+
+    const lineCount =
+        randomInt(
+            14,
+            30
+        );
+
+    for (
+        let i = 0;
+        i < lineCount;
+        i++
     ) {
 
-        return;
+        glitchLines.push({
+
+            y:
+                random(
+                    height * 0.40,
+                    height * 0.70
+                ),
+
+            height:
+                random(
+                    1,
+                    7
+                ),
+
+            offset:
+                random(
+                    -35,
+                    35
+                ),
+
+            width:
+                random(
+                    width * 0.15,
+                    width * 0.75
+                ),
+
+            alpha:
+                random(
+                    0.18,
+                    0.75
+                )
+
+        });
+
     }
 
 
+    /* -----------------------------------------------------
+       Small fragments
+    ----------------------------------------------------- */
+
+    const fragmentCount =
+        randomInt(
+            20,
+            55
+        );
+
+    for (
+        let i = 0;
+        i < fragmentCount;
+        i++
+    ) {
+
+        glitchFragments.push({
+
+            x:
+                random(
+                    width * 0.25,
+                    width * 0.75
+                ),
+
+            y:
+                random(
+                    height * 0.43,
+                    height * 0.68
+                ),
+
+            width:
+                random(
+                    5,
+                    60
+                ),
+
+            height:
+                random(
+                    2,
+                    12
+                ),
+
+            offset:
+                random(
+                    -50,
+                    50
+                ),
+
+            alpha:
+                random(
+                    0.2,
+                    0.9
+                )
+
+        });
+
+    }
+
+}
+
+
+/* =========================================================
+   DRAW GLITCH
+========================================================= */
+
+function drawGlitch(
+    progress
+) {
+
     ctx.save();
+
+
+    /* -----------------------------------------------------
+       Original GAURAV becomes unstable
+    ----------------------------------------------------- */
+
+    const centerX =
+        width / 2;
+
+    const centerY =
+        height * 0.58;
+
+    const fontSize =
+        Math.min(
+            width * 0.15,
+            155
+        );
+
+
+    /*
+       Draw increasingly transparent text.
+    */
+
+    const textAlpha =
+        Math.max(
+            0,
+            1 - progress * 1.45
+        );
 
 
     ctx.textAlign =
@@ -1353,194 +997,364 @@ function drawGaurav() {
     ctx.textBaseline =
         "middle";
 
+    ctx.font =
+        `600 ${fontSize}px "Times New Roman", serif`;
 
-    for (
-        let i = 0;
-        i < letters.length;
-        i++
+    ctx.globalAlpha =
+        textAlpha;
+
+    ctx.fillStyle =
+        COLORS.pink;
+
+    ctx.shadowColor =
+        COLORS.pink;
+
+    ctx.shadowBlur =
+        25;
+
+    ctx.fillText(
+        gauravText,
+        centerX,
+        centerY
+    );
+
+
+    /* -----------------------------------------------------
+       Flickering copies
+    ----------------------------------------------------- */
+
+    if (
+        Math.random() <
+        0.72
     ) {
 
-        const letter =
-            letters[i];
-
-
-        if (
-            letter.opacity <=
-            0.01
-        ) {
-
-            continue;
-        }
-
-
-        /*
-           Normal glow before
-           power cut.
-        */
-
-        let glowStrength =
-            letter.glow;
-
-
-        /*
-           During glitch,
-           individual letters flicker.
-        */
-
-        if (
-            glitch.active
-        ) {
-
-            const flicker =
-                Math.random();
-
-
-            if (
-                flicker < 0.18
-            ) {
-
-                letter.flicker =
-                    0;
-
-            } else {
-
-                letter.flicker =
-                    1;
-            }
-
-
-            glowStrength *=
-                letter.flicker;
-        }
-
-
-        ctx.save();
-
-
-        ctx.translate(
-            letter.x,
-            letter.y
-        );
-
-
-        ctx.font =
-            `300 ${letter.fontSize}px Arial`;
-
-
-        /*
-           Pink glow.
-        */
-
-        ctx.shadowColor =
-            `rgba(
-                249,
-                209,
-                217,
-                ${0.65 * glowStrength}
-            )`;
-
+        ctx.globalAlpha =
+            random(
+                0.12,
+                0.55
+            );
 
         ctx.shadowBlur =
-            22;
-
+            0;
 
         ctx.fillStyle =
-            `rgba(
-                249,
-                209,
-                217,
-                ${letter.opacity * letter.flicker}
-            )`;
-
+            Math.random() > 0.5
+                ? "#ffffff"
+                : COLORS.pink;
 
         ctx.fillText(
-            letter.char,
-            0,
-            0
+            gauravText,
+            centerX +
+                random(
+                    -12,
+                    12
+                ),
+            centerY +
+                random(
+                    -5,
+                    5
+                )
         );
 
+    }
 
-        /*
-           Glitch copies.
 
-           These create the brief
-           electronic/power-cut feeling.
-        */
+    /* -----------------------------------------------------
+       Horizontal glitch slices
+    ----------------------------------------------------- */
+
+    ctx.globalAlpha = 1;
+
+    for (
+        const line
+        of glitchLines
+    ) {
 
         if (
-            glitch.active
+            Math.random() <
+            0.75
         ) {
 
-            const glitchAmount =
-                glitch.intensity;
+            ctx.fillStyle =
+                Math.random() > 0.5
+                    ? COLORS.pink
+                    : "#ffffff";
 
+            ctx.globalAlpha =
+                line.alpha *
+                (1 - progress * 0.35);
 
-            if (
-                Math.random() <
-                0.42
-            ) {
+            ctx.fillRect(
+                centerX -
+                    line.width / 2 +
+                    line.offset,
+                line.y,
+                line.width,
+                line.height
+            );
 
-                ctx.shadowBlur =
-                    0;
-
-
-                ctx.fillStyle =
-                    `rgba(
-                        255,
-                        120,
-                        150,
-                        ${0.30 * glitchAmount}
-                    )`;
-
-
-                ctx.fillText(
-                    letter.char,
-                    random(
-                        -7,
-                        7
-                    ),
-                    random(
-                        -2,
-                        2
-                    )
-                );
-            }
-
-
-            if (
-                Math.random() <
-                0.35
-            ) {
-
-                ctx.fillStyle =
-                    `rgba(
-                        255,
-                        255,
-                        255,
-                        ${0.22 * glitchAmount}
-                    )`;
-
-
-                ctx.fillText(
-                    letter.char,
-                    random(
-                        -4,
-                        4
-                    ),
-                    random(
-                        -5,
-                        5
-                    )
-                );
-            }
         }
 
+    }
 
-        ctx.restore();
+
+    /* -----------------------------------------------------
+       Fragment blocks
+    ----------------------------------------------------- */
+
+    for (
+        const fragment
+        of glitchFragments
+    ) {
+
+        if (
+            Math.random() <
+            0.65
+        ) {
+
+            ctx.fillStyle =
+                Math.random() > 0.5
+                    ? COLORS.pink
+                    : "#ffffff";
+
+            ctx.globalAlpha =
+                fragment.alpha *
+                (1 - progress * 0.3);
+
+            ctx.fillRect(
+                fragment.x +
+                    fragment.offset *
+                    progress,
+                fragment.y,
+                fragment.width,
+                fragment.height
+            );
+
+        }
+
+    }
+
+
+    /* -----------------------------------------------------
+       Power flash
+    ----------------------------------------------------- */
+
+    if (
+        progress > 0.65 &&
+        Math.random() < 0.25
+    ) {
+
+        ctx.fillStyle =
+            `rgba(255,255,255,${random(
+                0.03,
+                0.14
+            )})`;
+
+        ctx.fillRect(
+            0,
+            0,
+            width,
+            height
+        );
+
     }
 
 
     ctx.restore();
+
+}
+
+
+/* =========================================================
+   DRAW START
+========================================================= */
+
+function drawStart(
+    time
+) {
+
+    const centerX =
+        width / 2;
+
+    const centerY =
+        height * 0.58;
+
+
+    const fontSize =
+        Math.min(
+            width * 0.13,
+            135
+        );
+
+
+    const pulse =
+        0.75 +
+        Math.sin(
+            time * 0.004
+        ) * 0.25;
+
+
+    ctx.save();
+
+    ctx.textAlign =
+        "center";
+
+    ctx.textBaseline =
+        "middle";
+
+    ctx.font =
+        `600 ${fontSize}px "Times New Roman", serif`;
+
+
+    /* -----------------------------------------------------
+       Glow
+    ----------------------------------------------------- */
+
+    ctx.shadowColor =
+        COLORS.yellow;
+
+    ctx.shadowBlur =
+        24 +
+        pulse * 18;
+
+    ctx.fillStyle =
+        COLORS.yellow;
+
+    ctx.globalAlpha =
+        0.92;
+
+    ctx.fillText(
+        "START",
+        centerX,
+        centerY
+    );
+
+
+    /* -----------------------------------------------------
+       Stronger inner glow
+    ----------------------------------------------------- */
+
+    ctx.shadowBlur =
+        45;
+
+    ctx.globalAlpha =
+        0.22;
+
+    ctx.fillText(
+        "START",
+        centerX,
+        centerY
+    );
+
+
+    ctx.restore();
+
+
+    /* -----------------------------------------------------
+       Update broad clickable area
+    ----------------------------------------------------- */
+
+    const measured =
+        ctx.measureText(
+            "START"
+        );
+
+    startArea.x =
+        centerX -
+        measured.width / 2 -
+        45;
+
+    startArea.y =
+        centerY -
+        fontSize / 2 -
+        40;
+
+    startArea.width =
+        measured.width +
+        90;
+
+    startArea.height =
+        fontSize +
+        80;
+
+}
+
+
+/* =========================================================
+   WAITING FIRST PULL
+========================================================= */
+
+function beginWaitingFirstPull() {
+
+    state =
+        STATES.WAITING_FIRST_PULL;
+
+    lamp.on =
+        false;
+
+    lamp.glow =
+        0;
+
+    lamp.ropeOffset =
+        0;
+
+    showFirstPull();
+
+}
+
+
+/* =========================================================
+   FIRST PULL
+========================================================= */
+
+function triggerFirstPull() {
+
+    if (
+        state !==
+        STATES.WAITING_FIRST_PULL
+    ) {
+
+        return;
+
+    }
+
+
+    hideFirstPull();
+
+    lamp.on =
+        true;
+
+    lamp.glow =
+        1;
+
+    state =
+        STATES.GAURAV;
+
+    gauravStart =
+        performance.now();
+
+
+    /*
+       GAURAV remains visible
+       for exactly 4 seconds.
+    */
+
+    setTimeout(
+        () => {
+
+            if (
+                state ===
+                STATES.GAURAV
+            ) {
+
+                beginPowerCut();
+
+            }
+
+        },
+        4000
+    );
+
 }
 
 
@@ -1552,295 +1366,27 @@ function beginPowerCut() {
 
     if (
         state !==
-        STATE.GAURAV
+        STATES.GAURAV
     ) {
 
         return;
-    }
 
+    }
 
     state =
-        STATE.GLITCH;
+        STATES.POWER_CUT;
 
-
-    glitch.active =
-        true;
-
-
-    glitch.finished =
-        false;
-
-
-    glitch.startTime =
+    powerCutStart =
         performance.now();
 
+    createGlitchData();
 
-    /*
-       Generate glitch bars.
-    */
+    lamp.on =
+        false;
 
-    glitchBars =
-        [];
+    lamp.glow =
+        0;
 
-
-    for (
-        let i = 0;
-        i < 24;
-        i++
-    ) {
-
-        glitchBars.push({
-
-            y:
-                random(
-                    height * 0.32,
-                    height * 0.68
-                ),
-
-            height:
-                random(
-                    1,
-                    5
-                ),
-
-            width:
-                random(
-                    width * 0.08,
-                    width * 0.65
-                ),
-
-            x:
-                random(
-                    -50,
-                    width
-                ),
-
-            speed:
-                random(
-                    2,
-                    9
-                ),
-
-            opacity:
-                random(
-                    0.08,
-                    0.35
-                )
-        });
-    }
-
-
-    /*
-       The actual power cut
-       happens toward the end.
-    */
-
-    setTimeout(
-        () => {
-
-            gauravVisible =
-                false;
-
-
-            letters.forEach(
-                letter => {
-
-                    letter.opacity =
-                        0;
-
-                }
-            );
-
-
-        },
-        1150
-    );
-
-
-    /*
-       After glitch finishes,
-       PULL ME returns.
-    */
-
-    setTimeout(
-        () => {
-
-            finishPowerCut();
-
-        },
-        glitch.duration
-    );
-}
-
-
-/* =========================================================
-   UPDATE GLITCH
-========================================================= */
-
-function updateGlitch() {
-
-    if (
-        !glitch.active
-    ) {
-
-        return;
-    }
-
-
-    const elapsedGlitch =
-        performance.now() -
-        glitch.startTime;
-
-
-    const progress =
-        clamp(
-            elapsedGlitch /
-                glitch.duration,
-            0,
-            1
-        );
-
-
-    /*
-       Strongest glitch
-       around middle.
-    */
-
-    glitch.intensity =
-        Math.sin(
-            progress *
-            Math.PI
-        );
-
-
-    /*
-       Power flicker.
-    */
-
-    if (
-        Math.random() <
-        0.035
-    ) {
-
-        glitch.powerCut =
-            1;
-
-    } else {
-
-        glitch.powerCut =
-            lerp(
-                glitch.powerCut,
-                0,
-                0.25
-            );
-    }
-
-
-    /*
-       Move glitch bars.
-    */
-
-    glitchBars.forEach(
-        bar => {
-
-            bar.x +=
-                bar.speed;
-
-
-            if (
-                bar.x >
-                width + bar.width
-            ) {
-
-                bar.x =
-                    -bar.width;
-            }
-        }
-    );
-}
-
-
-/* =========================================================
-   DRAW GLITCH
-========================================================= */
-
-function drawGlitch() {
-
-    if (
-        !glitch.active
-    ) {
-
-        return;
-    }
-
-
-    /*
-       Horizontal digital fragments.
-    */
-
-    ctx.save();
-
-
-    for (
-        const bar of glitchBars
-    ) {
-
-        if (
-            Math.random() >
-            glitch.intensity *
-            0.7
-        ) {
-
-            continue;
-        }
-
-
-        ctx.fillStyle =
-            `rgba(
-                249,
-                209,
-                217,
-                ${bar.opacity * glitch.intensity}
-            )`;
-
-
-        ctx.fillRect(
-            bar.x,
-            bar.y,
-            bar.width,
-            bar.height
-        );
-    }
-
-
-    /*
-       Very subtle screen interruption.
-    */
-
-    if (
-        glitch.powerCut >
-        0.2
-    ) {
-
-        ctx.fillStyle =
-            `rgba(
-                255,
-                255,
-                255,
-                ${0.025 * glitch.powerCut}
-            )`;
-
-
-        ctx.fillRect(
-            0,
-            0,
-            width,
-            height
-        );
-    }
-
-
-    ctx.restore();
 }
 
 
@@ -1850,392 +1396,299 @@ function drawGlitch() {
 
 function finishPowerCut() {
 
-    glitch.active =
-        false;
+    state =
+        STATES.WAITING_SECOND_PULL;
+
+    secondPullStart =
+        performance.now();
+
+    showSecondPull();
+
+}
 
 
-    glitch.intensity =
-        0;
+/* =========================================================
+   SECOND PULL
+========================================================= */
+
+function triggerSecondPull() {
+
+    if (
+        state !==
+        STATES.WAITING_SECOND_PULL
+    ) {
+
+        return;
+
+    }
 
 
-    gauravVisible =
-        false;
+    hideSecondPull();
+
+    lamp.on =
+        true;
+
+    lamp.glow =
+        1;
+
+    state =
+        STATES.START;
+
+    startPulse =
+        performance.now();
+
+}
+
+
+/* =========================================================
+   START CLICK
+========================================================= */
+
+function startClicked(
+    clientX,
+    clientY
+) {
+
+    if (
+        state !==
+        STATES.START
+    ) {
+
+        return false;
+
+    }
 
 
     /*
-       Second PULL ME.
+       Use a broad area so the user
+       doesn't have to click exactly
+       on one pixel.
     */
 
-    state =
-        STATE.WAITING_FOR_SECOND_PULL;
+    const inside =
+        clientX >=
+            startArea.x &&
+        clientX <=
+            startArea.x +
+                startArea.width &&
+        clientY >=
+            startArea.y &&
+        clientY <=
+            startArea.y +
+                startArea.height;
 
+
+    return inside;
+
+}
+
+
+/* =========================================================
+   FINISH INTRO
+========================================================= */
+
+function finishIntro() {
+
+    /*
+       Prevent duplicate execution.
+    */
+
+    if (
+        state ===
+        STATES.FINISHED
+    ) {
+
+        return;
+
+    }
+
+
+    state =
+        STATES.FINISHED;
+
+
+    hideFirstPull();
+
+    hideSecondPull();
+
+
+    /*
+       Stop intro scrolling lock.
+    */
+
+    document.body.classList.remove(
+        "intro-active"
+    );
+
+
+    /*
+       Show portfolio immediately.
+       This avoids relying only on
+       CSS timing.
+    */
+
+    portfolio.classList.add(
+        "show"
+    );
+
+
+    /*
+       Force the important visibility
+       values as an additional safety
+       layer.
+    */
+
+    portfolio.style.opacity =
+        "1";
+
+    portfolio.style.visibility =
+        "visible";
+
+    portfolio.style.transform =
+        "translateY(0)";
+
+
+    /*
+       Fade intro away.
+    */
+
+    intro.classList.add(
+        "hide"
+    );
+
+
+    /*
+       Disable intro interaction.
+    */
+
+    intro.style.pointerEvents =
+        "none";
+
+
+    /*
+       Completely remove intro after
+       the fade finishes.
+    */
 
     setTimeout(
         () => {
 
-            show(
-                secondPullInstruction
-            );
+            intro.style.display =
+                "none";
 
         },
-        250
-    );
-}
-
-
-/* =========================================================
-   START
-========================================================= */
-
-function showStart() {
-
-    startText.visible =
-        true;
-
-
-    startText.x =
-        width / 2;
-
-
-    startText.y =
-        height / 2;
-
-
-    startText.opacity =
-        0;
-
-
-    startText.glow =
-        0;
-
-
-    startText.scale =
-        0.92;
-}
-
-
-/* =========================================================
-   UPDATE START
-========================================================= */
-
-function updateStart() {
-
-    if (
-        !startText.visible
-    ) {
-
-        return;
-    }
-
-
-    startText.opacity =
-        lerp(
-            startText.opacity,
-            1,
-            0.045
-        );
-
-
-    startText.glow =
-        lerp(
-            startText.glow,
-            1,
-            0.045
-        );
-
-
-    startText.scale =
-        lerp(
-            startText.scale,
-            1,
-            0.045
-        );
-
-
-    /*
-       Small breathing glow.
-    */
-
-    const pulse =
-        1 +
-        Math.sin(
-            elapsed * 2
-        ) *
-        0.035;
-
-
-    startText.scale *=
-        pulse;
-}
-
-
-/* =========================================================
-   DRAW START
-========================================================= */
-
-function drawStart() {
-
-    if (
-        !startText.visible
-    ) {
-
-        return;
-    }
-
-
-    ctx.save();
-
-
-    ctx.textAlign =
-        "center";
-
-    ctx.textBaseline =
-        "middle";
-
-
-    ctx.translate(
-        startText.x,
-        startText.y
-    );
-
-
-    ctx.scale(
-        startText.scale,
-        startText.scale
+        1200
     );
 
 
     /*
-       Exact requested color:
-       #feffaf
+       Put user at top of portfolio.
     */
 
-    ctx.font =
-        `300 ${clamp(
-            Math.min(
-                width,
-                height
-            ) * 0.065,
-            30,
-            68
-        )}px Arial`;
-
-
-    /*
-       Soft yellow glow.
-    */
-
-    ctx.shadowColor =
-        `rgba(
-            254,
-            255,
-            175,
-            ${0.75 * startText.glow}
-        )`;
-
-
-    ctx.shadowBlur =
-        28;
-
-
-    ctx.fillStyle =
-        `rgba(
-            254,
-            255,
-            175,
-            ${startText.opacity}
-        )`;
-
-
-    ctx.fillText(
-        "START",
+    window.scrollTo(
         0,
         0
     );
 
-
-    /*
-       Store clickable region.
-    */
-
-    const metrics =
-        ctx.measureText(
-            "START"
-        );
-
-
-    startText.hitRadiusX =
-        metrics.width / 2 +
-        25;
-
-
-    startText.hitRadiusY =
-        45;
-
-
-    ctx.restore();
 }
 
 
 /* =========================================================
-   START HIT TEST
-========================================================= */
-
-function isOnStart(
-    x,
-    y
-) {
-
-    if (
-        !startText.visible
-    ) {
-
-        return false;
-    }
-
-
-    return (
-
-        Math.abs(
-            x -
-            startText.x
-        ) <=
-        startText.hitRadiusX &&
-
-        Math.abs(
-            y -
-            startText.y
-        ) <=
-        startText.hitRadiusY
-    );
-}
-
-
-/* =========================================================
-   OPEN PORTFOLIO
-========================================================= */
-
-function openPortfolio() {
-
-    if (
-        state !==
-        STATE.START
-    ) {
-
-        return;
-    }
-
-
-    state =
-        STATE.FINISHED;
-
-
-    startText.visible =
-        false;
-
-
-    cinematicFlash();
-
-
-    setTimeout(
-        () => {
-
-            portfolio.classList.add(
-                "visible"
-            );
-
-        },
-        350
-    );
-
-
-    setTimeout(
-        () => {
-
-            intro.classList.add(
-                "finished"
-            );
-
-
-            document.body.style.overflow =
-                "auto";
-
-        },
-        1400
-    );
-}
-
-
-/* =========================================================
-   CANVAS POINTER
+   POINTER DOWN
 ========================================================= */
 
 canvas.addEventListener(
     "pointerdown",
-    event => {
-
-        currentPointerY =
-            event.clientY;
-
+    function(event) {
 
         /*
-           START itself is clickable.
+           START stage:
+           Clicking anywhere in the broad
+           START area opens portfolio.
         */
 
         if (
             state ===
-            STATE.START
+            STATES.START
         ) {
 
             if (
-                isOnStart(
+                startClicked(
                     event.clientX,
                     event.clientY
                 )
             ) {
 
-                openPortfolio();
+                finishIntro();
+
+                return;
+
             }
 
+        }
+
+
+        /*
+           Pull stages.
+        */
+
+        if (
+            state !==
+            STATES.WAITING_FIRST_PULL &&
+            state !==
+            STATES.WAITING_SECOND_PULL
+        ) {
 
             return;
+
         }
+
+
+        const dx =
+            event.clientX -
+            lamp.x;
+
+        const dy =
+            event.clientY -
+            (
+                lamp.ropeTopY +
+                lamp.ropeLength +
+                lamp.ropeOffset
+            );
+
+
+        const distance =
+            Math.sqrt(
+                dx * dx +
+                dy * dy
+            );
 
 
         /*
-           ROPE
+           User grabbed rope.
         */
 
         if (
-
-            state ===
-                STATE.WAITING_FOR_FIRST_PULL ||
-
-            state ===
-                STATE.WAITING_FOR_SECOND_PULL
+            distance < 80 ||
+            (
+                Math.abs(dx) < 80 &&
+                event.clientY >
+                    lamp.ropeTopY
+            )
         ) {
 
-            if (
-                isPointerOnRope(
-                    event.clientX,
-                    event.clientY
-                )
-            ) {
+            lamp.pulling =
+                true;
 
-                beginRopePull(
-                    event.clientY
-                );
+            lamp.pullStartY =
+                event.clientY;
 
+            canvas.setPointerCapture(
+                event.pointerId
+            );
 
-                try {
-
-                    canvas.setPointerCapture(
-                        event.pointerId
-                    );
-
-                } catch (error) {}
-            }
         }
+
     }
 );
 
@@ -2246,10 +1699,73 @@ canvas.addEventListener(
 
 canvas.addEventListener(
     "pointermove",
-    event => {
+    function(event) {
 
-        currentPointerY =
-            event.clientY;
+        if (
+            !lamp.pulling
+        ) {
+
+            return;
+
+        }
+
+
+        const movement =
+            event.clientY -
+            lamp.pullStartY;
+
+
+        lamp.currentPull =
+            Math.max(
+                0,
+                Math.min(
+                    lamp.maxPull,
+                    movement
+                )
+            );
+
+
+        lamp.ropeOffset =
+            lamp.currentPull;
+
+
+        /*
+           If rope pulled far enough,
+           trigger corresponding action.
+        */
+
+        if (
+            lamp.currentPull >=
+            lamp.maxPull * 0.72
+        ) {
+
+            lamp.pulling =
+                false;
+
+            lamp.ropeOffset =
+                0;
+
+
+            if (
+                state ===
+                STATES.WAITING_FIRST_PULL
+            ) {
+
+                triggerFirstPull();
+
+            }
+
+            else if (
+                state ===
+                STATES.WAITING_SECOND_PULL
+            ) {
+
+                triggerSecondPull();
+
+            }
+
+        }
+
     }
 );
 
@@ -2260,333 +1776,338 @@ canvas.addEventListener(
 
 canvas.addEventListener(
     "pointerup",
-    event => {
+    function(event) {
 
-        currentPointerY =
-            event.clientY;
+        if (
+            lamp.pulling
+        ) {
+
+            lamp.pulling =
+                false;
+
+            lamp.currentPull =
+                0;
+
+            lamp.ropeOffset =
+                0;
+
+        }
 
 
-        releaseRope();
-    }
-);
+        try {
 
+            canvas.releasePointerCapture(
+                event.pointerId
+            );
 
-canvas.addEventListener(
-    "pointercancel",
-    () => {
+        }
 
-        releaseRope();
+        catch (error) {
+
+            /*
+               Safe to ignore.
+            */
+
+        }
+
     }
 );
 
 
 /* =========================================================
-   KEYBOARD
+   POINTER CANCEL
+========================================================= */
+
+canvas.addEventListener(
+    "pointercancel",
+    function() {
+
+        lamp.pulling =
+            false;
+
+        lamp.currentPull =
+            0;
+
+        lamp.ropeOffset =
+            0;
+
+    }
+);
+
+
+/* =========================================================
+   CLICK FALLBACK FOR START
+========================================================= */
+
+/*
+   This is intentionally separate from
+   pointerdown.
+
+   If a browser behaves differently with
+   touch/click handling, START still works.
+*/
+
+canvas.addEventListener(
+    "click",
+    function(event) {
+
+        if (
+            state !==
+            STATES.START
+        ) {
+
+            return;
+
+        }
+
+
+        /*
+           If START is visible, use the
+           broad hitbox.
+        */
+
+        if (
+            startClicked(
+                event.clientX,
+                event.clientY
+            )
+        ) {
+
+            finishIntro();
+
+        }
+
+    }
+);
+
+
+/* =========================================================
+   KEYBOARD ACCESS
 ========================================================= */
 
 window.addEventListener(
     "keydown",
-    event => {
+    function(event) {
+
+        /*
+           Enter or Space can activate
+           START when it is visible.
+        */
 
         if (
-            event.code !==
-            "Space"
-        ) {
-
-            return;
-        }
-
-
-        if (
-
             state ===
-                STATE.WAITING_FOR_FIRST_PULL ||
-
-            state ===
-                STATE.WAITING_FOR_SECOND_PULL
+            STATES.START &&
+            (
+                event.key ===
+                    "Enter" ||
+                event.key ===
+                    " " ||
+                event.key ===
+                    "Spacebar"
+            )
         ) {
 
             event.preventDefault();
 
+            finishIntro();
 
-            lamp.isDragging =
-                true;
-
-
-            lamp.ropePull =
-                ropePhysics.maxPull *
-                0.8;
-
-
-            setTimeout(
-                () => {
-
-                    releaseRope();
-
-                },
-                100
-            );
         }
+
     }
 );
 
 
 /* =========================================================
-   SHOW / HIDE
-========================================================= */
-
-function show(
-    element
-) {
-
-    element.classList.remove(
-        "hidden"
-    );
-
-    element.classList.add(
-        "visible"
-    );
-}
-
-
-function hide(
-    element
-) {
-
-    element.classList.remove(
-        "visible"
-    );
-
-    element.classList.add(
-        "hidden"
-    );
-}
-
-
-/* =========================================================
-   FLASH
-========================================================= */
-
-function cinematicFlash() {
-
-    introFlash.classList.add(
-        "active"
-    );
-
-
-    setTimeout(
-        () => {
-
-            introFlash.classList.remove(
-                "active"
-            );
-
-        },
-        180
-    );
-}
-
-
-/* =========================================================
-   UPDATE LAMP
-========================================================= */
-
-function updateLamp() {
-
-    lamp.brightness =
-        lerp(
-            lamp.brightness,
-            lamp.targetBrightness,
-            0.035
-        );
-}
-
-
-/* =========================================================
-   MAIN UPDATE
-========================================================= */
-
-function update(
-    delta
-) {
-
-    elapsed +=
-        delta / 1000;
-
-
-    updateLamp();
-
-
-    updateRope();
-
-
-    updateGlitch();
-
-
-    updateStart();
-}
-
-
-/* =========================================================
-   DRAW
-========================================================= */
-
-function draw() {
-
-    /*
-       BLACK BACKGROUND
-    */
-
-    ctx.clearRect(
-        0,
-        0,
-        width,
-        height
-    );
-
-
-    ctx.fillStyle =
-        "#000";
-
-
-    ctx.fillRect(
-        0,
-        0,
-        width,
-        height
-    );
-
-
-    /*
-       Lamp light
-    */
-
-    drawLampLight();
-
-
-    /*
-       Lamp
-    */
-
-    drawLamp();
-
-
-    /*
-       Rope
-    */
-
-    drawRope();
-
-
-    /*
-       GAURAV
-    */
-
-    drawGaurav();
-
-
-    /*
-       Glitch
-    */
-
-    drawGlitch();
-
-
-    /*
-       START
-    */
-
-    drawStart();
-}
-
-
-/* =========================================================
-   ANIMATION LOOP
+   DRAW LOOP
 ========================================================= */
 
 function animationLoop(
-    now
+    time
 ) {
 
-    const delta =
-        Math.min(
-            now -
-            lastTime,
-            32
+    clearCanvas();
+
+
+    /* -----------------------------------------------------
+       Waiting for first pull
+    ----------------------------------------------------- */
+
+    if (
+        state ===
+        STATES.WAITING_FIRST_PULL
+    ) {
+
+        drawLamp();
+
+    }
+
+
+    /* -----------------------------------------------------
+       GAURAV stage
+    ----------------------------------------------------- */
+
+    else if (
+        state ===
+        STATES.GAURAV
+    ) {
+
+        drawLamp();
+
+        drawGaurav(
+            time
+        );
+
+    }
+
+
+    /* -----------------------------------------------------
+       Power cut / glitch
+    ----------------------------------------------------- */
+
+    else if (
+        state ===
+        STATES.POWER_CUT
+    ) {
+
+        const elapsed =
+            time -
+            powerCutStart;
+
+        const duration =
+            1050;
+
+        const progress =
+            Math.min(
+                1,
+                elapsed /
+                    duration
+            );
+
+
+        /*
+           Lamp rapidly loses power.
+        */
+
+        lamp.glow =
+            Math.max(
+                0,
+                1 - progress * 2
+            );
+
+        drawLamp();
+
+        drawGlitch(
+            progress
         );
 
 
-    lastTime =
-        now;
+        if (
+            progress >= 1
+        ) {
+
+            finishPowerCut();
+
+        }
+
+    }
 
 
-    update(
-        delta
-    );
+    /* -----------------------------------------------------
+       Waiting for second pull
+    ----------------------------------------------------- */
+
+    else if (
+        state ===
+        STATES.WAITING_SECOND_PULL
+    ) {
+
+        drawLamp();
+
+    }
 
 
-    draw();
+    /* -----------------------------------------------------
+       START stage
+    ----------------------------------------------------- */
+
+    else if (
+        state ===
+        STATES.START
+    ) {
+
+        drawLamp();
+
+        drawStart(
+            time
+        );
+
+    }
+
+
+    /* -----------------------------------------------------
+       Finished
+    ----------------------------------------------------- */
+
+    else if (
+        state ===
+        STATES.FINISHED
+    ) {
+
+        /*
+           Nothing is drawn.
+           Portfolio is visible.
+        */
+
+    }
 
 
     requestAnimationFrame(
         animationLoop
     );
+
 }
 
 
 /* =========================================================
-   INITIALIZE
+   START EVERYTHING
 ========================================================= */
 
-function initialize() {
+resizeCanvas();
 
-    document.body.style.overflow =
-        "hidden";
+beginWaitingFirstPull();
 
-
-    /*
-       First PULL ME
-    */
-
-    show(
-        pullInstruction
-    );
+requestAnimationFrame(
+    animationLoop
+);
 
 
-    /*
-       Hide tilt instruction because
-       this version no longer needs
-       the tilt phase after GAURAV.
-    */
+/* =========================================================
+   SAFETY: IF USER RETURNS TO PAGE
+========================================================= */
 
-    hide(
-        tiltInstruction
-    );
+window.addEventListener(
+    "pageshow",
+    function() {
 
+        if (
+            state !==
+            STATES.FINISHED
+        ) {
 
-    hide(
-        secondPullInstruction
-    );
+            document.body.classList.add(
+                "intro-active"
+            );
 
+        }
 
-    /*
-       Hide old HTML START button.
-    */
-
-    if (startButton) {
-
-        startButton.style.display =
-            "none";
     }
+);
 
 
-    resizeCanvas();
+/* =========================================================
+   CONSOLE MESSAGE
+========================================================= */
 
-
-    requestAnimationFrame(
-        animationLoop
-    );
-}
-
-
-initialize();
+console.log(
+    "GAURAV Portfolio loaded successfully."
+);

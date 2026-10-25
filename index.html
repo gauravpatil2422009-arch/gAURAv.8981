@@ -1,87 +1,159 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Gaurav — Portfolio</title>
-    <link rel="stylesheet" href="style.css">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <meta
+        name="description"
+        content="Gaurav's personal portfolio website."
+    >
+
+    <title>GAURAV | Portfolio</title>
+
+    <link
+        rel="stylesheet"
+        href="style.css"
+    >
 </head>
 
 <body>
 
-    <!-- =========================================================
+    <!-- =====================================================
          CINEMATIC INTRO
-    ========================================================== -->
+    ====================================================== -->
 
-    <section id="intro">
+    <section
+        id="intro"
+        aria-label="Website introduction"
+    >
 
-        <canvas id="introCanvas"></canvas>
+        <canvas
+            id="introCanvas"
+        ></canvas>
 
-        <div id="introInstruction" class="intro-text">
+        <!-- Small text near the rope -->
+        <div
+            id="pullInstruction"
+        >
             PULL ME
         </div>
 
-        <div id="tiltInstruction" class="intro-text">
-            TILT YOUR MOBILE
-        </div>
-
-        <div id="secondPullInstruction" class="intro-text hidden">
+        <!-- Appears after GAURAV disappears -->
+        <div
+            id="secondPullInstruction"
+        >
             PULL ME
         </div>
-
-        <button id="startButton" aria-label="Start portfolio">
-            START
-        </button>
-
-        <div id="introVignette"></div>
-        <div id="introFlash"></div>
 
     </section>
 
 
-    <!-- =========================================================
+    <!-- =====================================================
          MAIN PORTFOLIO
-    ========================================================== -->
+    ====================================================== -->
 
-    <main id="portfolio">
+    <main
+        id="portfolio"
+    >
 
-        <!-- NAVIGATION -->
-        <nav class="navbar">
+        <!-- ================= NAVIGATION ================= -->
 
-            <div class="nav-logo">
+        <nav
+            class="navbar"
+        >
+
+            <div
+                class="nav-logo"
+            >
                 GAURAV
             </div>
 
-            <div class="nav-links">
-                <a href="#home">Home</a>
-                <a href="#about">About</a>
-                <a href="#skills">Skills</a>
-                <a href="#projects">Projects</a>
-                <a href="#contact">Contact</a>
+            <div
+                class="nav-links"
+            >
+
+                <a href="#home">
+                    Home
+                </a>
+
+                <a href="#about">
+                    About
+                </a>
+
+                <a href="#skills">
+                    Skills
+                </a>
+
+                <a href="#projects">
+                    Projects
+                </a>
+
+                <a href="#education">
+                    Education
+                </a>
+
+                <a href="#contact">
+                    Contact
+                </a>
+
             </div>
 
         </nav>
 
 
-        <!-- HOME -->
-        <section id="home" class="hero section">
+        <!-- ================= HOME ================= -->
 
-            <div class="hero-content">
+        <section
+            id="home"
+            class="hero section"
+        >
 
-                <p class="small-title">
+            <div
+                class="hero-content"
+            >
+
+                <p
+                    class="eyebrow"
+                >
                     WELCOME TO MY WORLD
                 </p>
 
                 <h1>
-                    Hi, I'm <span>Gaurav.</span>
+                    Hi, I'm
+                    <span>
+                        Gaurav.
+                    </span>
                 </h1>
 
-                <p class="hero-description">
-                    I build, experiment and create things with technology.
+                <h2>
+                    Code. Create. Innovate.
+                </h2>
+
+                <p
+                    class="intro-text"
+                >
+                    Hi, I’m Gaurav, an engineering student passionate
+                    about technology, coding, and creative problem-solving.
+                    I enjoy learning new skills, building projects, and
+                    turning ideas into practical solutions. I’m constantly
+                    exploring, experimenting, and working towards becoming
+                    a better engineer and developer.
                 </p>
 
-                <a href="#projects" class="main-button">
-                    Explore My Work →
+                <a
+                    href="#projects"
+                    class="main-button"
+                >
+                    Explore My Work
+                    <span>
+                        →
+                    </span>
                 </a>
 
             </div>
@@ -89,144 +161,266 @@
         </section>
 
 
-        <!-- ABOUT -->
-        <section id="about" class="section about-section">
+        <!-- ================= ABOUT ================= -->
 
-            <div class="section-number">
+        <section
+            id="about"
+            class="section about-section"
+        >
+
+            <div
+                class="section-number"
+            >
                 01 — ABOUT
             </div>
 
-            <div class="about-content">
+            <div
+                class="about-content"
+            >
 
                 <h2>
-                    More than just code.
+                    More than
+                    <span>
+                        just code.
+                    </span>
                 </h2>
 
-                <p>
-                    I'm Gaurav, a technology enthusiast who enjoys learning
-                    new things, experimenting with ideas and turning concepts
-                    into real projects.
-                </p>
+                <div
+                    class="about-text"
+                >
+
+                    <p>
+                        I’m Gaurav, a diploma student at
+                        R.C. Patel College, currently in my
+                        second year.
+                    </p>
+
+                    <p>
+                        I’m interested in technology, coding,
+                        engineering, and creative problem-solving.
+                        I enjoy understanding how things work and
+                        turning ideas into something practical.
+                    </p>
+
+                    <p>
+                        I’m continuously learning and improving my
+                        technical skills with the goal of building
+                        a strong career in the technology industry.
+                    </p>
+
+                    <p>
+                        In the future, I would love to work with
+                        leading technology companies such as
+                        Google or Microsoft.
+                    </p>
+
+                </div>
 
             </div>
 
         </section>
 
 
-        <!-- SKILLS -->
-        <section id="skills" class="section skills-section">
+        <!-- ================= SKILLS ================= -->
 
-            <div class="section-number">
+        <section
+            id="skills"
+            class="section"
+        >
+
+            <div
+                class="section-number"
+            >
                 02 — SKILLS
             </div>
 
-            <div class="skills-grid">
-
-                <div class="skill-card">
-                    <span>01</span>
-                    <h3>HTML & CSS</h3>
-                </div>
-
-                <div class="skill-card">
-                    <span>02</span>
-                    <h3>JavaScript</h3>
-                </div>
-
-                <div class="skill-card">
-                    <span>03</span>
-                    <h3>Python</h3>
-                </div>
-
-                <div class="skill-card">
-                    <span>04</span>
-                    <h3>Technology</h3>
-                </div>
-
-            </div>
-
-        </section>
-
-
-        <!-- PROJECTS -->
-        <section id="projects" class="section projects-section">
-
-            <div class="section-number">
-                03 — PROJECTS
-            </div>
-
-            <div class="projects-container">
-
-                <article class="project-card">
-
-                    <div class="project-number">
-                        PROJECT 01
-                    </div>
-
-                    <h2>
-                        My First Website
-                    </h2>
-
-                    <p>
-                        A personal website created using HTML, CSS and
-                        JavaScript while exploring modern web development.
-                    </p>
-
-                    <a href="#">
-                        VIEW PROJECT →
-                    </a>
-
-                </article>
-
-
-                <article class="project-card coming-soon">
-
-                    <div class="project-number">
-                        PROJECT 02
-                    </div>
-
-                    <h2>
-                        Coming Soon
-                    </h2>
-
-                    <p>
-                        Something new is currently being built.
-                    </p>
-
-                </article>
-
-            </div>
-
-        </section>
-
-
-        <!-- CONTACT -->
-        <section id="contact" class="section contact-section">
-
-            <div class="section-number">
-                04 — CONTACT
-            </div>
-
-            <div class="contact-content">
+            <div
+                class="coming-section"
+            >
 
                 <h2>
-                    Let's build something.
+                    Currently
+                    <span>
+                        learning.
+                    </span>
                 </h2>
 
                 <p>
-                    Have an idea? Let's talk.
+                    My skills are still growing.
+                    I’m learning, experimenting, and
+                    building my foundation step by step.
                 </p>
 
-                <a href="mailto:your-email@example.com" class="email-link">
-                    your-email@example.com
-                </a>
+                <div
+                    class="coming-label"
+                >
+                    SKILLS — COMING SOON
+                </div>
 
             </div>
 
         </section>
 
 
-        <!-- FOOTER -->
-        <footer>
+        <!-- ================= PROJECTS ================= -->
+
+        <section
+            id="projects"
+            class="section"
+        >
+
+            <div
+                class="section-number"
+            >
+                03 — PROJECTS
+            </div>
+
+            <div
+                class="coming-section"
+            >
+
+                <h2>
+                    Things I'm
+                    <span>
+                        building.
+                    </span>
+                </h2>
+
+                <p>
+                    Projects are currently in progress.
+                    This section will soon showcase the
+                    things I build and experiment with.
+                </p>
+
+                <div
+                    class="coming-label"
+                >
+                    PROJECTS — COMING SOON
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- ================= EDUCATION ================= -->
+
+        <section
+            id="education"
+            class="section education-section"
+        >
+
+            <div
+                class="section-number"
+            >
+                04 — EDUCATION
+            </div>
+
+            <div
+                class="education-card"
+            >
+
+                <div
+                    class="education-year"
+                >
+                    02
+                </div>
+
+                <div
+                    class="education-info"
+                >
+
+                    <h2>
+                        R.C. Patel College
+                    </h2>
+
+                    <p>
+                        Diploma — 2nd Year
+                    </p>
+
+                    <span>
+                        Engineering
+                    </span>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- ================= CONTACT ================= -->
+
+        <section
+            id="contact"
+            class="section contact-section"
+        >
+
+            <div
+                class="section-number"
+            >
+                05 — CONTACT
+            </div>
+
+            <div
+                class="contact-content"
+            >
+
+                <h2>
+                    Let's
+                    <span>
+                        connect.
+                    </span>
+                </h2>
+
+                <p>
+                    Have an idea, project, or simply want
+                    to say hello? Feel free to reach out.
+                </p>
+
+                <div
+                    class="contact-links"
+                >
+
+                    <a
+                        href="mailto:gauravpatil.2422009@gmail.com"
+                    >
+                        <span>
+                            Email
+                        </span>
+
+                        <strong>
+                            gauravpatil.2422009@gmail.com
+                        </strong>
+                    </a>
+
+
+                    <a
+                        href="https://instagram.com/mr_gaurav_patil_8981"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                    >
+                        <span>
+                            Instagram
+                        </span>
+
+                        <strong>
+                            @mr_gaurav_patil_8981
+                        </strong>
+                    </a>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- ================= FOOTER ================= -->
+
+        <footer
+            class="footer"
+        >
 
             <p>
                 © 2026 GAURAV. Built from scratch.
@@ -237,7 +431,9 @@
     </main>
 
 
+    <!-- JavaScript -->
     <script src="script.js"></script>
 
 </body>
+
 </html>
